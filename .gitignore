@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+
+.vs/
+bin/
+lib/
+ZhKeyesFTPClient/x64/
+ZhKeyesLog/x64/
+
+*vcxproj.user

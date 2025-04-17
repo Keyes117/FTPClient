@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ui">
+      <UniqueIdentifier>{8c744f49-3e97-4837-a3b8-2c7719b4d821}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{dfb54380-e8fd-4ab9-be6e-feb6195afd1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="net">
+      <UniqueIdentifier>{e3bb131b-ea98-4e7b-83af-8916166f3f2e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="handler">
+      <UniqueIdentifier>{0d011ad3-e4ad-4078-83c5-cc538182a954}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="Preference.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="ZhKeyesFTPClient.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="FTPServer.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="Handler.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Task.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="LogonTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="small.ico">
+      <Filter>src</Filter>
+    </Image>
+    <Image Include="ZhKeyesFTPClient.ico">
+      <Filter>src</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Preference.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="ZhKeyesFTPClient.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="Handler.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="Task.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="LogonTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ZhKeyesFTPClient.rc">
+      <Filter>src</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
