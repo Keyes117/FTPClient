@@ -42,6 +42,12 @@
     <ClInclude Include="LogonTask.h">
       <Filter>handler</Filter>
     </ClInclude>
+    <ClInclude Include="ConnectTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="UIProxy.h">
+      <Filter>ui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -66,6 +72,15 @@
     </ClCompile>
     <ClCompile Include="LogonTask.cpp">
       <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="ConnectTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="FTPServer.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="UIProxy.cpp">
+      <Filter>ui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -7,33 +7,53 @@
 #ifndef HANDLER_HANDLER_H_
 #define HANDLER_HANDLER_H_
 
+#include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <list>
 #include <mutex>
-#include <vector>
+
+#include "AsyncLog.h"
 
 #include "Task.h"
 
-class Handler
+class Handler final
 {
+
 public:
+
+    static Handler& getInstance();
+
+    bool init(int8_t threadNum = 4);
+    void close();
+
+    void registerSendTask(std::shared_ptr<Task>&& task);
+    void registerRecvTask(std::shared_ptr<Task>&& task);
+
+private:
+
     Handler();
     ~Handler() = default;
 
-
-public:
-    bool init(int8_t threadNum = 4);
-    bool close();
+    void sendThreadProc();
+    void recvThreadProc();
 
 private:
-    void threadProc();
 
-private:
-    bool                                        m_running;
-    std::mutex                                  m_mutex;
-    std::vector<std::shared_ptr<std::thread>>   m_threads;
-    std::vector<std::shared_ptr<Task>>          m_tasks;
-    std::condition_variable                     m_cv;
+    std::mutex                                  m_sendMutex;
+    std::mutex                                  m_recvMutex;
+
+    std::condition_variable                     m_sendCV;
+    std::condition_variable                     m_recvCV;
+
+    std::unique_ptr<std::thread>                m_spSendThread;
+    std::unique_ptr<std::thread>                m_spRecvThread;
+
+    std::list<std::shared_ptr<Task>>            m_sendTasks;
+    std::list<std::shared_ptr<Task>>            m_recvTasks;
+
+    //标记任务处理线程是否退出
+    std::atomic<bool>                           m_running;
 };
 
 

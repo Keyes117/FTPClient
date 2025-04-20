@@ -13,15 +13,14 @@
 
 enum class FTPMODE
 {
-    ModeActive =0,
+    ModeActive = 0,
     ModePassive
 };
 
 class FTPServer final
 {
 public:
-    FTPServer();
-    ~FTPServer();
+    static FTPServer& getInstance();
 
 public:
 
@@ -34,12 +33,23 @@ public:
     bool download();
 
     bool setMode(FTPMODE mode = FTPMODE::ModePassive);
+
+    bool connect(const std::string& ip, uint16_t port, int timeoutMs);
+
 private:
+    SOCKET      m_hSocket;
+
+    bool        m_bConnected{ false };
+
+private:
+    FTPServer();
+    ~FTPServer();
+
     FTPServer(const FTPServer& rhs) = delete;
     FTPServer& operator=(const FTPServer& rhs) = delete;
 
-    FTPServer( FTPServer&& rhs) = delete;
-    FTPServer& operator=( FTPServer&& rhs) = delete;
+    FTPServer(FTPServer&& rhs) = delete;
+    FTPServer& operator=(FTPServer&& rhs) = delete;
 };
 
 

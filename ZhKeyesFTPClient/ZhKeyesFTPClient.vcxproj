@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ConnectTask.h" />
     <ClInclude Include="FTPServer.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Handler.h" />
@@ -147,13 +148,17 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Task.h" />
+    <ClInclude Include="UIProxy.h" />
     <ClInclude Include="ZhKeyesFTPClient.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ConnectTask.cpp" />
+    <ClCompile Include="FTPServer.cpp" />
     <ClCompile Include="Handler.cpp" />
     <ClCompile Include="LogonTask.cpp" />
     <ClCompile Include="Preference.cpp" />
     <ClCompile Include="Task.cpp" />
+    <ClCompile Include="UIProxy.cpp" />
     <ClCompile Include="ZhKeyesFTPClient.cpp" />
   </ItemGroup>
   <ItemGroup>
