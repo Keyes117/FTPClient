@@ -13,6 +13,9 @@
     <Filter Include="handler">
       <UniqueIdentifier>{0d011ad3-e4ad-4078-83c5-cc538182a954}</UniqueIdentifier>
     </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{b1b67626-e7eb-46c2-945e-6abc944706d5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -47,6 +50,9 @@
     </ClInclude>
     <ClInclude Include="UIProxy.h">
       <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="StringUtils.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

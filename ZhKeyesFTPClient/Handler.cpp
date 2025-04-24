@@ -77,7 +77,7 @@ void Handler::sendThreadProc()
         }
 
         auto pTask = m_sendTasks.front();
-        m_sendTasks.pop_front();
+
 
         if (pTask == NULL)
             continue;

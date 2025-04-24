@@ -1,6 +1,6 @@
 #include "FTPServer.h"
 
-#include <WinSock2.h>
+
 
 #pragma comment(lib, "Ws2_32.lib");
 
@@ -116,5 +116,44 @@ bool FTPServer::connect(const std::string& ip, uint16_t port, int timeout)
 
     return true;
 }
+
+bool FTPServer::recvBuf()
+{
+    if (!m_bConnected)
+        return false;
+
+    std::string recvBuf;
+
+    while (true)
+    {
+        char buf[64] = { 0 };
+
+        int bytesRecv = recv(m_hSocket, buf, 1024, 0);
+
+        if (bytesRecv == 0)
+            return false;
+        else if (bytesRecv == -1)
+        {
+            if (WSAGetLastError() == EWOULDBLOCK)
+            {
+                //当前没有数据
+                break;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        recvBuf.append(buf, bytesRecv);
+    }
+
+    //解包
+
+    return true;
+
+}
+
+
 
 

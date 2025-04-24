@@ -4,8 +4,8 @@
  * @date:   2025/4/20
  */
 
-#ifndef HANDLER_HANDLER_H_
-#define HANDLER_HANDLER_H_
+#ifndef UI_UIPROXY_H_
+#define UI_UIPROXY_H_
 
 #include <string>
 
@@ -23,4 +23,4 @@ private:
     ~UIProxy() = default;
 };
 
-#endif
+#endif //!UI_UIPROXY_H_

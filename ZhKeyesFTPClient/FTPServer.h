@@ -7,6 +7,7 @@
 #ifndef NET_FTPSERVER_H_
 #define NET_FTPSERVER_H_
 
+#include <WinSock2.h>
 
 #include <cstdint>
 #include <string>
@@ -15,6 +16,13 @@ enum class FTPMODE
 {
     ModeActive = 0,
     ModePassive
+};
+
+enum class DecodePackageResult
+{
+    Success = 0,
+    Failed,
+    ExpectMore
 };
 
 class FTPServer final
@@ -34,7 +42,12 @@ public:
 
     bool setMode(FTPMODE mode = FTPMODE::ModePassive);
 
-    bool connect(const std::string& ip, uint16_t port, int timeoutMs);
+    bool connect(const std::string& ip, uint16_t port, int timeoutMs = 3);
+
+    bool recvBuf();
+
+private:
+    bool decodePackage(std::string& recvBuf);
 
 private:
     SOCKET      m_hSocket;

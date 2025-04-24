@@ -5,6 +5,7 @@
 #include "ZhKeyesFTPClient.h"
 
 #include "Handler.h"
+#include "UIProxy.h"
 
 #define MAX_LOADSTRING 100
 
@@ -200,8 +201,13 @@ INT_PTR CALLBACK siteManagerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
     switch (message)
     {
     case WM_INITDIALOG:
-    return (INT_PTR)TRUE;
-
+    {
+        SetDlgItemText(hDlg, IDC_EDIT_IP, _T("127.0.0.1"));
+        SetDlgItemText(hDlg, IDC_EDIT_PORT, _T("21"));
+        SetDlgItemText(hDlg, IDC_EDIT_USER, _T("zhkeyes"));
+        SetDlgItemText(hDlg, IDC_EDIT_PWD, _T("zyq1230"));
+        return (INT_PTR)TRUE;
+    }
     case WM_COMMAND:
     if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
     {
@@ -217,13 +223,13 @@ INT_PTR CALLBACK siteManagerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
         GetDlgItemText(hDlg, IDC_EDIT_PORT, szPort, 32);
 
         TCHAR szUser[32];
-        GetDlgItemText(hDlg, IDC_EDIT_IP, szUser, 32);
+        GetDlgItemText(hDlg, IDC_EDIT_USER, szUser, 32);
 
         TCHAR szPWD[32];
-        GetDlgItemText(hDlg, IDC_EDIT_IP, szPWD, 32);
+        GetDlgItemText(hDlg, IDC_EDIT_PWD, szPWD, 32);
 
 
-
+        UIProxy::getInstance().connect(szIP, static_cast<uint16_t>(std::wcstol(szPort, NULL, 10)), szUser, szPWD);
     }
     break;
     }
