@@ -54,6 +54,12 @@
     <ClInclude Include="StringUtils.h">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="CharChecker.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="ProtocolParser.h">
+      <Filter>net</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -87,6 +93,12 @@
     </ClCompile>
     <ClCompile Include="UIProxy.cpp">
       <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="CharChecker.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="ProtocolParser.cpp">
+      <Filter>net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

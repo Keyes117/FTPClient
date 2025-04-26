@@ -12,18 +12,17 @@
 #include <cstdint>
 #include <string>
 
+#include "ProtocolParser.h"
+#include <memory>
+#include <thread>
+
+
 enum class FTPMODE
 {
     ModeActive = 0,
     ModePassive
 };
 
-enum class DecodePackageResult
-{
-    Success = 0,
-    Failed,
-    ExpectMore
-};
 
 class FTPServer final
 {
@@ -31,6 +30,9 @@ public:
     static FTPServer& getInstance();
 
 public:
+
+    void startNetworkThread();
+    void stopNetworkThread();
 
     bool logon(const char* ip, uint16_t port, const char* username, const char* password);
     std::string list();
@@ -47,12 +49,17 @@ public:
     bool recvBuf();
 
 private:
-    bool decodePackage(std::string& recvBuf);
+    void networkThreadFunc();
 
 private:
-    SOCKET      m_hSocket;
+    SOCKET                              m_hSocket;
+    std::string                         m_recvBuf;
+    bool                                m_bConnected{ false };
+    bool                                m_networkThreadrunning{ false };
 
-    bool        m_bConnected{ false };
+    ProtocolParser                      m_protocolParser;
+
+    std::unique_ptr<std::thread>        m_spNetWorkThread;
 
 private:
     FTPServer();
