@@ -24,7 +24,7 @@ public:
 
     static Handler& getInstance();
 
-    bool init(int8_t threadNum = 4);
+    bool init();
     void close();
 
     void registerSendTask(std::shared_ptr<Task>&& task);

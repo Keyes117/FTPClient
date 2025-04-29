@@ -21,6 +21,8 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    siteManagerProc(HWND hDlg, UINT message, WPARAM wParam,
     LPARAM lParam);
+
+void ClearExpiredLog(PCTSTR pszFileSuffixName);
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
@@ -28,6 +30,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
+    //清理过期的日志文件
+    ClearExpiredLog(_T("log"));
 
     CAsyncLog::init("ZhKeyesFTP");
 
@@ -228,10 +232,55 @@ INT_PTR CALLBACK siteManagerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
         TCHAR szPWD[32];
         GetDlgItemText(hDlg, IDC_EDIT_PWD, szPWD, 32);
 
+        BOOL bPassiveMode = IsDlgButtonChecked(hDlg, IDC_CHECK_Mode);
 
-        UIProxy::getInstance().connect(szIP, static_cast<uint16_t>(std::wcstol(szPort, NULL, 10)), szUser, szPWD);
+        UIProxy::getInstance().connect(szIP,
+            static_cast<uint16_t>(std::wcstol(szPort, NULL,
+                10)), szUser, szPWD, bPassiveMode ? true : false);
     }
     break;
     }
     return (INT_PTR)FALSE;
+}
+
+void ClearExpiredLog(PCTSTR pszFileSuffixName)
+{
+    if (pszFileSuffixName == NULL)
+        return;
+
+    TCHAR szHomePath[MAX_PATH] = { 0 };
+    GetModuleFileName(NULL, szHomePath, MAX_PATH);
+    for (int i = _tcslen(szHomePath) - 1; i >= 0; --i)
+    {
+        if (szHomePath[i] == _T('\\'))
+        {
+            szHomePath[i] = _T('\0');
+            break;
+        }
+    }
+
+    WIN32_FIND_DATA win32FindData = { 0 };
+    TCHAR szLogFilePath[MAX_PATH] = { 0 };
+    _stprintf_s(szLogFilePath, MAX_PATH, _T("%s\\log\\*.%s"), szHomePath, pszFileSuffixName);
+    HANDLE hFindFile = ::FindFirstFile(szLogFilePath, &win32FindData);
+    if (hFindFile == INVALID_HANDLE_VALUE)
+        return;
+
+    do
+    {
+        if (_tcsicmp(win32FindData.cFileName, _T(".")) != 0 ||
+            _tcsicmp(win32FindData.cFileName, _T("..")) != 0)
+        {
+            memset(szLogFilePath, 0, sizeof(szLogFilePath));
+            _stprintf_s(szLogFilePath, MAX_PATH, _T("%s\\log\\%s"), szHomePath, win32FindData.cFileName);
+            //���ﲻ�ü���Ƿ�ɾ���ɹ�,��Ϊ���µ�һ��log��������Ҫ��,����ɾ��,�������˽���ռ����,����ɾ����
+            ::DeleteFile(szLogFilePath);
+        }
+
+        if (!::FindNextFile(hFindFile, &win32FindData))
+            break;
+
+    } while (true);
+
+    ::FindClose(hFindFile);
 }

@@ -16,7 +16,7 @@ public:
     static UIProxy& getInstance();
 
     void connect(const std::wstring& ip, uint16_t port,
-        const std::wstring& userName, const std::wstring& password);
+        const std::wstring& userName, const std::wstring& password, bool isPassiveMode);
 
 private:
     UIProxy() = default;

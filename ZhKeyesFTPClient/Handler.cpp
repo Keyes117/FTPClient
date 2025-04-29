@@ -20,9 +20,9 @@ Handler& Handler::getInstance()
     return handler;
 }
 
-bool Handler::init(int8_t threadNum /*= 4*/)
+bool Handler::init()
 {
-    //TODO: 对threadCount 进行校验
+
 
     //TODO: 当前我们简化为两个线程，一个UI->数据->网络  一个网络->数据->UI 后续在考虑线程池
     m_running = true;
@@ -102,7 +102,7 @@ void Handler::recvThreadProc()
                 return;
             //如果获得了互斥锁， 但是条件不合适的话， pthread_cond_wait会释放锁不往下执行
             //当发生变化后，条件合适，pthread_cond_wait将直接获得锁
-            m_recvCV.wait(guard);
+            m_recvCV.wait(guard     );
         }
 
         auto pTask = m_recvTasks.front();

@@ -12,9 +12,10 @@ UIProxy& UIProxy::getInstance()
     return proxy;
 }
 
-void UIProxy::connect(const std::wstring& ip, uint16_t port, const std::wstring& userName, const std::wstring& password)
+void UIProxy::connect(const std::wstring& ip, uint16_t port,
+    const std::wstring& userName, const std::wstring& password, bool isPassiveMode)
 {
-    std::shared_ptr<ConnectTask> ptask = std::make_shared<ConnectTask>(ip, port, userName, password);
+    std::shared_ptr<ConnectTask> ptask = std::make_shared<ConnectTask>(ip, port, userName, password, isPassiveMode);
 
     Handler::getInstance().registerSendTask(std::move(ptask));
 }

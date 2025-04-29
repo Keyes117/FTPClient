@@ -33,7 +33,7 @@
     <ClInclude Include="ZhKeyesFTPClient.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="FTPServer.h">
+    <ClInclude Include="FTPClient.h">
       <Filter>net</Filter>
     </ClInclude>
     <ClInclude Include="Handler.h">
@@ -88,7 +88,7 @@
     <ClCompile Include="ConnectTask.cpp">
       <Filter>handler</Filter>
     </ClCompile>
-    <ClCompile Include="FTPServer.cpp">
+    <ClCompile Include="FTPClient.cpp">
       <Filter>net</Filter>
     </ClCompile>
     <ClCompile Include="UIProxy.cpp">

@@ -16,16 +16,17 @@ class ConnectTask : public Task
 {
 public:
     ConnectTask(const std::wstring& ip, uint16_t port,
-        const std::wstring& userName, const std::wstring& password);
+        const std::wstring& userName, const std::wstring& password, bool isPassiveMode);
     virtual ~ConnectTask() = default;
 
     virtual void doTask() override;
 
 private:
-    std::wstring             m_ip;
-    uint16_t                m_port;
-    std::wstring             m_userName;
-    std::wstring             m_password;
+    std::wstring                m_ip;
+    uint16_t                    m_port;
+    std::wstring                m_userName;
+    std::wstring                m_password;
+    bool                        m_isPassiveMode{ false };
 
 };
 

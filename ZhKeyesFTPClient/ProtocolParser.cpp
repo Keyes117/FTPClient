@@ -188,6 +188,7 @@ DecodePackageResult ProtocolParser::praseFTPResponse(std::string& buf, std::vect
         if (line.isEnd)
         {
             buf.erase(0, charCount);
+            m_prasePos = 0;
             return DecodePackageResult::Success; //至少解出一个包
         }
     }
@@ -198,5 +199,6 @@ void ProtocolParser::resetStatus()
 {
     m_parseStatus = FTP_PARSE_STATUS::FTP_PARSE_START;
     m_isMultiLineEnd = false;
+
 }
 //end func
