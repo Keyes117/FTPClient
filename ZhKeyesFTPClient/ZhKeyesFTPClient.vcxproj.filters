@@ -36,7 +36,7 @@
     <ClInclude Include="FTPClient.h">
       <Filter>net</Filter>
     </ClInclude>
-    <ClInclude Include="Handler.h">
+    <ClInclude Include="TaskHandler.h">
       <Filter>handler</Filter>
     </ClInclude>
     <ClInclude Include="Task.h">
@@ -60,6 +60,30 @@
     <ClInclude Include="ProtocolParser.h">
       <Filter>net</Filter>
     </ClInclude>
+    <ClInclude Include="PwdTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="EnterPassiveModeTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="CwdTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="DeleteTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="StringUtil.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="PortTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="ListTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
+    <ClInclude Include="UploadTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -76,7 +100,7 @@
     <ClCompile Include="ZhKeyesFTPClient.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="Handler.cpp">
+    <ClCompile Include="TaskHandler.cpp">
       <Filter>handler</Filter>
     </ClCompile>
     <ClCompile Include="Task.cpp">
@@ -99,6 +123,30 @@
     </ClCompile>
     <ClCompile Include="ProtocolParser.cpp">
       <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="PwdTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="EnterPassiveModeTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="CwdTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="DeleteTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="StringUtil.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="PortTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="ListTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="UploadTask.cpp">
+      <Filter>handler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

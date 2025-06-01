@@ -1,4 +1,4 @@
-#include "Handler.h"
+#include "TaskHandler.h"
 
 
 #include <functional>
@@ -6,7 +6,7 @@
 #include <thread>
 
 
-Handler::Handler()
+TaskHandler::TaskHandler()
 {
 }
 
@@ -14,25 +14,25 @@ Handler::Handler()
 //TODO: Windows系统其实自带一个线程池API，可以尝试使用
 
 
-Handler& Handler::getInstance()
+TaskHandler& TaskHandler::getInstance()
 {
-    static Handler handler;
+    static TaskHandler handler;
     return handler;
 }
 
-bool Handler::init()
+bool TaskHandler::init()
 {
 
 
     //TODO: 当前我们简化为两个线程，一个UI->数据->网络  一个网络->数据->UI 后续在考虑线程池
     m_running = true;
-    m_spSendThread = std::make_unique<std::thread>(std::bind(&Handler::sendThreadProc, this));
-    m_spRecvThread = std::make_unique<std::thread>(std::bind(&Handler::recvThreadProc, this));
+    m_spSendThread = std::make_unique<std::thread>(std::bind(&TaskHandler::sendThreadProc, this));
+    m_spRecvThread = std::make_unique<std::thread>(std::bind(&TaskHandler::recvThreadProc, this));
 
     return true;
 }
 
-void Handler::close()
+void TaskHandler::close()
 {
     m_running = false;
 
@@ -45,21 +45,21 @@ void Handler::close()
     LOGI("Handler::close() successfully ..... ");
 }
 
-void Handler::registerSendTask(std::shared_ptr<Task>&& task)
+void TaskHandler::registerSendTask(std::shared_ptr<Task>&& task)
 {
     std::lock_guard<std::mutex> guard(m_sendMutex);
     m_sendTasks.emplace_back(std::move(task));
     m_sendCV.notify_one();
 }
 
-void Handler::registerRecvTask(std::shared_ptr<Task>&& task)
+void TaskHandler::registerRecvTask(std::shared_ptr<Task>&& task)
 {
     std::lock_guard<std::mutex> guard(m_recvMutex);
     m_recvTasks.emplace_back(std::move(task));
     m_recvCV.notify_one();
 }
 
-void Handler::sendThreadProc()
+void TaskHandler::sendThreadProc()
 {
     LOGI("Handler::sendThreadProc()..... ");
 
@@ -88,7 +88,7 @@ void Handler::sendThreadProc()
     }
 }
 
-void Handler::recvThreadProc()
+void TaskHandler::recvThreadProc()
 {
 
     LOGI("Handler::recvThreadProc()..... ");
@@ -102,7 +102,7 @@ void Handler::recvThreadProc()
                 return;
             //如果获得了互斥锁， 但是条件不合适的话， pthread_cond_wait会释放锁不往下执行
             //当发生变化后，条件合适，pthread_cond_wait将直接获得锁
-            m_recvCV.wait(guard     );
+            m_recvCV.wait(guard);
         }
 
         auto pTask = m_recvTasks.front();

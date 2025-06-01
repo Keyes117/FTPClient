@@ -1,5 +1,5 @@
 /**
- * @desc:   连接任务，Logon.h
+ * @desc:   连接任务，ConnectTask.h
  * @author: ZhKeyes
  * @date:   2025/4/17
  */
@@ -22,8 +22,8 @@ public:
     virtual void doTask() override;
 
 private:
-    std::wstring                m_ip;
-    uint16_t                    m_port;
+    std::wstring                m_controlIp;
+    uint16_t                    m_controlPort;
     std::wstring                m_userName;
     std::wstring                m_password;
     bool                        m_isPassiveMode{ false };

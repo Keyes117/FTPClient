@@ -9,7 +9,7 @@
 
 ConnectTask::ConnectTask(const std::wstring& ip, uint16_t port,
     const std::wstring& userName, const std::wstring& password, bool isPassiveMode)
-    :m_ip(ip), m_port(port),
+    :m_controlIp(ip), m_controlPort(port),
     m_userName(userName),
     m_password(password),
     m_isPassiveMode(isPassiveMode)
@@ -23,12 +23,16 @@ void ConnectTask::doTask()
         //½¨Ò»¸ö
 
     std::wstring_convert<std::codecvt_utf8<wchar_t>> connverter;
-    std::string ip = connverter.to_bytes(m_ip);
+    std::string ip = connverter.to_bytes(m_controlIp);
     std::string username = connverter.to_bytes(m_userName);
     std::string password = connverter.to_bytes(m_password);
 
 
-    FTPClient::getInstance().setServerInfo(ip, m_port, username, password, m_isPassiveMode);
+    FTPClient::getInstance().setServerInfo(ip, m_controlPort, username, password, m_isPassiveMode);
     FTPClient::getInstance().startNetworkThread();
+
+    FTPClient::getInstance().connectWithResponse();
+
+
 
 }

@@ -4,7 +4,7 @@
 #include "framework.h"
 #include "ZhKeyesFTPClient.h"
 
-#include "Handler.h"
+#include "TaskHandler.h"
 #include "UIProxy.h"
 
 #define MAX_LOADSTRING 100
@@ -36,7 +36,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     CAsyncLog::init("ZhKeyesFTP");
 
 
-    Handler::getInstance().init();
+    TaskHandler::getInstance().init();
 
 
     LOGI("ZhKeyesFTP Startd.....");
@@ -67,7 +67,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
 
-    Handler::getInstance().close();
+    TaskHandler::getInstance().close();
     CAsyncLog::uninit();
     return (int)msg.wParam;
 }

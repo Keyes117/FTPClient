@@ -4,8 +4,8 @@
  * @date:   2025/4/17
  */
 
-#ifndef HANDLER_HANDLER_H_
-#define HANDLER_HANDLER_H_
+#ifndef HANDLER_TASKHANDLER_H_
+#define HANDLER_TASKHANDLER_H_
 
 #include <atomic>
 #include <condition_variable>
@@ -17,12 +17,12 @@
 
 #include "Task.h"
 
-class Handler final
+class TaskHandler final
 {
 
 public:
 
-    static Handler& getInstance();
+    static TaskHandler& getInstance();
 
     bool init();
     void close();
@@ -32,8 +32,8 @@ public:
 
 private:
 
-    Handler();
-    ~Handler() = default;
+    TaskHandler();
+    ~TaskHandler() = default;
 
     void sendThreadProc();
     void recvThreadProc();

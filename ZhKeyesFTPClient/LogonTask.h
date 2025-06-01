@@ -1,11 +1,12 @@
 /**
- * @desc:   登录任务类，Logon.h
+ * @desc:   登录任务类，LogonTask.h
  * @author: ZhKeyes
  * @date:   2025/4/17
  */
 
 #ifndef HANDLER_LOGONTASK_H_
 #define HANDLER_LOGONTASK_H_
+#include "FTPClient.h"
 #include "Task.h"
 
 class LogonTask : public Task

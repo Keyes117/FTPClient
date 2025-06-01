@@ -141,29 +141,45 @@
   <ItemGroup>
     <ClInclude Include="CharChecker.h" />
     <ClInclude Include="ConnectTask.h" />
+    <ClInclude Include="CwdTask.h" />
+    <ClInclude Include="DeleteTask.h" />
+    <ClInclude Include="EnterPassiveModeTask.h" />
     <ClInclude Include="FTPClient.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="Handler.h" />
+    <ClInclude Include="ListTask.h" />
+    <ClInclude Include="PortTask.h" />
+    <ClInclude Include="StringUtil.h" />
+    <ClInclude Include="TaskHandler.h" />
     <ClInclude Include="LogonTask.h" />
     <ClInclude Include="Preference.h" />
     <ClInclude Include="ProtocolParser.h" />
+    <ClInclude Include="PwdTask.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="StringUtils.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="UIProxy.h" />
+    <ClInclude Include="UploadTask.h" />
     <ClInclude Include="ZhKeyesFTPClient.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharChecker.cpp" />
     <ClCompile Include="ConnectTask.cpp" />
+    <ClCompile Include="CwdTask.cpp" />
+    <ClCompile Include="DeleteTask.cpp" />
+    <ClCompile Include="EnterPassiveModeTask.cpp" />
     <ClCompile Include="FTPClient.cpp" />
-    <ClCompile Include="Handler.cpp" />
+    <ClCompile Include="ListTask.cpp" />
+    <ClCompile Include="PortTask.cpp" />
+    <ClCompile Include="StringUtil.cpp" />
+    <ClCompile Include="TaskHandler.cpp" />
     <ClCompile Include="LogonTask.cpp" />
     <ClCompile Include="Preference.cpp" />
     <ClCompile Include="ProtocolParser.cpp" />
+    <ClCompile Include="PwdTask.cpp" />
     <ClCompile Include="Task.cpp" />
     <ClCompile Include="UIProxy.cpp" />
+    <ClCompile Include="UploadTask.cpp" />
     <ClCompile Include="ZhKeyesFTPClient.cpp" />
   </ItemGroup>
   <ItemGroup>

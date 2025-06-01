@@ -2,9 +2,12 @@
 
 #include <chrono>
 #include <functional>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 #include "AsyncLog.h"
 #include "CharChecker.h"
+#include "StringUtil.h"
 #pragma comment(lib, "Ws2_32.lib")
 
 #define  MAX_RESPONSE_LENGTH 256
@@ -32,7 +35,7 @@ void FTPClient::startNetworkThread()
     if (m_networkThreadrunning)
         return;
     m_networkThreadrunning = true;
-    m_spNetWorkThread = std::make_unique<std::thread>(std::bind(&FTPClient::networkThreadFunc, this));
+    //m_spNetWorkThread = std::make_unique<std::thread>(std::bind(&FTPClient::networkThreadFunc, this));
 }
 
 void FTPClient::stopNetworkThread()
@@ -41,25 +44,622 @@ void FTPClient::stopNetworkThread()
     m_spNetWorkThread->join();
 }
 
-bool FTPClient::logon(const char* ip, uint16_t port, const char* username, const char* password)
+bool FTPClient::logon()
 {
+    if (!m_bControlChannelConnected)
+        return false;
+
+    //发送用户名
+    std::string buf("USER ");
+    buf.append(m_username);
+    buf.append("\r\n");
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return false;
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return false;
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return false;
+    }
+
+    bool userRecieved = false;
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd && line.statusCode == FTP_STATUS_CODE::SERVICE_READY_FOR_PASSWORD)
+            userRecieved = true;
+    }
+
+    if (!userRecieved)
+    {
+        closeSocket();
+        return false;
+    }
+
+    //if (responseLines.size() > 1)
+
+    //发送密码
+        //发送用户名
+    buf.clear();
+    buf.append("PASS ");
+    buf.append(m_password);
+    buf.append("\r\n");
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return false;
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return false;
+    }
+
+
+    //std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return false;
+    }
+
+    bool passwordRecieved = false;
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd && line.statusCode == FTP_STATUS_CODE::SERVICE_USER_LOG_IN)
+            return true;
+    }
+
     return false;
 }
 
-std::string FTPClient::list()
+bool FTPClient::list()
 {
-    return std::string();
+    if (m_isPassiveMode)
+    {
+        //TODO:被动模式下的拉取文件列表信息
+        return false;
+    }
+
+    if (!m_bDataChannelConnected)
+        return false;
+
+    //发送用户名
+    std::string buf("MLSD\r\n");
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return "";
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return "";
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return "";
+    }
+
+    bool userRecieved = false;
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd)
+        {
+            if (line.statusCode == FTP_STATUS_CODE::FILE_STATUS_OKAY_ABOUT_TO_OPEN_DATA_CONNECTION)
+            {
+                userRecieved = true;
+                break;
+            }
+        }
+
+    }
+
+    if (!userRecieved)
+    {
+        return true;
+    }
+
+    struct sockaddr_in clientaddr;
+    socklen_t clientaddrlen = sizeof(clientaddr);
+    //4. 接受客户端连接
+    m_hDataSocket = accept(m_hListenSocket, (struct sockaddr*)&clientaddr, &clientaddrlen);
+    if (m_hDataSocket < 0)
+        return false;
+
+    u_long argp = 1;
+    ioctlsocket(m_hDataSocket, FIONBIO, &argp);
+
+    int n;
+    std::string dataRecvBuf;
+    while (true)
+    {
+        char buf[4096] = { 0 };
+        n = recv(m_hDataSocket, buf, sizeof(buf), 0);
+        if (n > 0)
+        {
+            dataRecvBuf.append(buf, n);
+        }
+        else if (n < 0)
+        {
+            if (WSAGetLastError() == WSAEWOULDBLOCK)
+            {
+                continue;
+            }
+            else
+            {
+                ::closesocket(m_hDataSocket);
+                ::closesocket(m_hListenSocket);
+
+                m_bDataChannelConnected = false;
+
+                return false;
+            }
+        }
+        else//n =0 数据收完了
+        {
+            ::closesocket(m_hDataSocket);
+            ::closesocket(m_hListenSocket);
+
+            m_bDataChannelConnected = false;
+            break;
+        }
+    }
+
+
+    std::vector<DirEntry> entries;
+    parseDirEntires(dataRecvBuf, entries);
+
+    //解析目录数据
+    LOGI("received dir info:");
+    for (const auto& entry : entries)
+    {
+        LOGI("name: %s, type: %s, size: %lld, modify: %s",
+            entry.name.c_str(),
+            entry.type == FileType::File ? "file" : "dir",
+            entry.size,
+            entry.modify.c_str());
+    }
+
+    return true;
 }
 
-bool FTPClient::cwd()
+bool FTPClient::connectWithResponse()
 {
+    if (!connect())
+    {
+        closeSocket();
+        return false;
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return false;
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return false;
+    }
+
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd && line.statusCode == FTP_STATUS_CODE::SERVICE_READY_FOR_USER)
+            return true;
+    }
+
+    return false;
+
+}
+
+std::string FTPClient::pwd()
+{
+    if (!m_bControlChannelConnected)
+        return "";
+
+    //发送用户名
+    std::string buf("PWD\r\n");
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return "";
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return "";
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return "";
+    }
+
+    bool userRecieved = false;
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd && line.statusCode == FTP_STATUS_CODE::SERVICE_PATHNAME_CREATED)
+        {
+            //TODO: 返回的目录是: "/" 的话，则需要进一步解析
+            return line.statusText;
+        }
+
+    }
+
+}
+
+bool FTPClient::pasv()
+{
+    if (!m_bControlChannelConnected)
+        return "";
+
+    //发送用户名
+    std::string buf("PASV\r\n");
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return false;
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return false;
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return false;
+    }
+
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd && line.statusCode == FTP_STATUS_CODE::SERVICE_ENTER_PASSIVE_MODE)
+        {
+            LOGI("Enter passive mode");
+            parseDataIpAndPort(line.statusText);
+            return true;
+        }
+
+    }
+
     return false;
 }
 
-bool FTPClient::upload()
+bool FTPClient::cwd(const std::string& targetDir)
 {
+    if (!m_bControlChannelConnected)
+        return "";
+
+    //发送用户名
+    std::string buf;
+    buf.append("CWD ");
+    buf.append(targetDir);
+    buf.append("\r\n");
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return false;
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return false;
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return false;
+    }
+
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd && line.statusCode == FTP_STATUS_CODE::SERVICE_REQUESTED_FILE_ACTION_OKAY_COMPLETED)
+        {
+            return true;
+        }
+
+    }
+
     return false;
 }
+
+bool FTPClient::del(const std::string& targetDirOrFile)
+{
+    if (!m_bControlChannelConnected)
+        return "";
+
+    //发送用户名
+    std::string buf;
+    buf.append("CWD ");
+    buf.append(targetDirOrFile);
+    buf.append("\r\n");
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return false;
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return false;
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return false;
+    }
+
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd)
+        {
+            if (line.statusCode == FTP_STATUS_CODE::SERVICE_REQUESTED_FILE_ACTION_OKAY_COMPLETED)
+            {
+
+                return true;
+            }
+            else if (line.statusCode == FTP_STATUS_CODE::SERVICE_REQUESTED_ACTION_NOT_TOKEN)
+            {
+                //TODO:细分失败原因
+                return false;
+            }
+
+        }
+
+    }
+
+
+
+
+    return false;
+}
+
+bool FTPClient::port()
+{
+    if (!m_bControlChannelConnected)
+        return false;
+
+    if (!createDataServer())
+        return false;
+
+    if (!getDataServerAddr(m_dataIp, m_dataPort))
+        return false;
+
+    //127.0.0.1 => 127,0,0,1;
+    std::string tmpIpStr(m_dataIp);
+    StringUtil::replace(tmpIpStr, ".", ",");
+
+    char requestStr[64] = {};
+    sprintf_s(requestStr, sizeof(requestStr), "PORT %s,%d,%d\r\n",
+        tmpIpStr.c_str(), m_dataPort / 256, m_dataPort % 256);
+
+    //发送用户名
+    std::string buf(requestStr);
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return false;
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return false;
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return false;
+    }
+
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd && line.statusCode == FTP_STATUS_CODE::SERVICE_COMMAND_OK)
+        {
+            return true;
+        }
+
+    }
+
+
+
+
+    return false;
+}
+
+bool FTPClient::upload(const std::string& localFilePath, const std::string& serverFileName)
+{
+    if (m_isPassiveMode)
+    {
+        //TODO:被动模式下的拉取文件列表信息
+        return false;
+    }
+
+    if (!m_bDataChannelConnected)
+        return false;
+
+    //发送用户名
+    std::string buf("STOR ");
+    buf += serverFileName;
+    buf += "\r\n";
+
+    if (!sendBuf(buf))
+    {
+        closeSocket();
+        return "";
+    }
+
+    if (!checkReadable())
+    {
+        closeSocket();
+        return "";
+    }
+
+
+    std::vector<ResponseLine> responseLines;
+    if (!recvBuf(responseLines))
+    {
+        closeSocket();
+        return "";
+    }
+
+    bool userRecieved = false;
+    for (const auto& line : responseLines)
+    {
+        if (line.isEnd)
+        {
+            if (line.statusCode == FTP_STATUS_CODE::FILE_STATUS_OKAY_ABOUT_TO_OPEN_DATA_CONNECTION)
+            {
+                userRecieved = true;
+                break;
+            }
+        }
+
+    }
+
+    if (!userRecieved)
+    {
+        return true;
+    }
+
+    struct sockaddr_in clientaddr;
+    socklen_t clientaddrlen = sizeof(clientaddr);
+    //4. 接受客户端连接
+    m_hDataSocket = accept(m_hListenSocket, (struct sockaddr*)&clientaddr, &clientaddrlen);
+    if (m_hDataSocket < 0)
+        return false;
+
+    u_long argp = 1;
+    ioctlsocket(m_hDataSocket, FIONBIO, &argp);
+
+    //打开文件 读一段 发一段，发完之后关闭数据连接的发通道
+
+    HANDLE hFile = ::CreateFileA(localFilePath.c_str(),
+        GENERIC_READ, FILE_SHARE_READ,
+        NULL, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, 0);
+
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        ::closesocket(m_hDataSocket);
+        ::closesocket(m_hListenSocket);
+
+        m_bDataChannelConnected = false;
+        return false;
+    }
+
+    DWORD fileSizeHeight;
+    DWORD fileSizeLow = GetFileSize(hFile, &fileSizeHeight);
+
+    if (fileSizeLow == INVALID_FILE_SIZE)
+    {
+
+        CloseHandle(hFile);
+        ::closesocket(m_hDataSocket);
+        ::closesocket(m_hListenSocket);
+
+        m_bDataChannelConnected = false;
+        return false;
+    }
+
+    int64_t fileSize = (static_cast<int64_t>(fileSizeHeight) << 32) | fileSizeLow;
+
+    int64_t eachByteToRead = 2048;
+    char fileBuf[2024];
+    DWORD bytesRead;
+    bool error = false;
+    bool ret;
+    int64_t remainingBytes = fileSize;
+    while (true)
+    {
+        if (remainingBytes <= eachByteToRead)
+            eachByteToRead = remainingBytes;
+
+        if (!ReadFile(hFile,
+            fileBuf,
+            eachByteToRead,
+            &bytesRead,
+            NULL) || eachByteToRead != bytesRead
+            );
+        {
+            error = true;
+            break;
+        }
+
+        ret = sendBytes(m_hDataSocket, fileBuf, eachByteToRead);
+        if (!ret)
+        {
+            error = true;
+            break;
+        }
+
+        remainingBytes = fileSize - eachByteToRead;
+        LOGI("fileName: %s, remaining bytes: %lld", localFilePath.c_str(), remainingBytes);
+        //数据已经发完
+        if (remainingBytes == 0)
+            break;
+    }
+
+    CloseHandle(hFile);
+    ::closesocket(m_hDataSocket);
+    ::closesocket(m_hListenSocket);
+
+    m_bDataChannelConnected = false;
+
+    if (error)
+        return false;
+
+    return true;
+}
+
+
 
 bool FTPClient::download()
 {
@@ -73,30 +673,33 @@ bool FTPClient::setMode(FTPMODE mode)
 
 bool FTPClient::connect(int timeout)
 {
-    m_hSocket = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (m_hSocket == INVALID_SOCKET)
+    m_hControlSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (m_hControlSocket == INVALID_SOCKET)
         return false;
 
     long tmSend = 3 * 1000L;
     long tmRecv = 3 * 1000L;
     long noDelay = 1;
 
-    setsockopt(m_hSocket, IPPROTO_TCP, TCP_NODELAY, (LPSTR)&noDelay, sizeof(long));
-    setsockopt(m_hSocket, SOL_SOCKET, SO_SNDTIMEO, (LPSTR)&tmSend, sizeof(long));
-    setsockopt(m_hSocket, SOL_SOCKET, SO_RCVTIMEO, (LPSTR)&tmRecv, sizeof(long));
+    setsockopt(m_hControlSocket, IPPROTO_TCP, TCP_NODELAY, (LPSTR)&noDelay, sizeof(long));
+    setsockopt(m_hControlSocket, SOL_SOCKET, SO_SNDTIMEO, (LPSTR)&tmSend, sizeof(long));
+    setsockopt(m_hControlSocket, SOL_SOCKET, SO_RCVTIMEO, (LPSTR)&tmRecv, sizeof(long));
 
     //将socket设置成非阻塞的
     unsigned long on = 1;
-    if (::ioctlsocket(m_hSocket, FIONBIO, &on) == SOCKET_ERROR)
+    if (::ioctlsocket(m_hControlSocket, FIONBIO, &on) == SOCKET_ERROR)
+    {
         return false;
+
+    }
 
     struct sockaddr_in addrSrv = { 0 };
     struct hostent* pHostent = NULL;
     unsigned int addr = 0;
 
-    if ((addrSrv.sin_addr.s_addr = inet_addr(m_ip.c_str())) == INADDR_NONE)
+    if ((addrSrv.sin_addr.s_addr = inet_addr(m_controlIp.c_str())) == INADDR_NONE)
     {
-        pHostent = ::gethostbyname(m_ip.c_str());
+        pHostent = ::gethostbyname(m_controlIp.c_str());
         if (!pHostent)
         {
             //LOG_ERROR("Could not connect server:%s, port:%d.", m_strServer.c_str(), m_nPort);
@@ -107,12 +710,12 @@ bool FTPClient::connect(int timeout)
     }
 
     addrSrv.sin_family = AF_INET;
-    addrSrv.sin_port = htons((u_short)m_port);
-    int ret = ::connect(m_hSocket, (struct sockaddr*)&addrSrv, sizeof(addrSrv));
+    addrSrv.sin_port = htons((u_short)m_controlPort);
+    int ret = ::connect(m_hControlSocket, (struct sockaddr*)&addrSrv, sizeof(addrSrv));
     if (ret == 0)
     {
         //LOG_INFO("Connect to server:%s, port:%d successfully.", m_strServer.c_str(), m_nPort);
-        m_bConnected = true;
+        m_bControlChannelConnected = true;
         return true;
     }
     else if (ret == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
@@ -123,31 +726,38 @@ bool FTPClient::connect(int timeout)
 
     fd_set writeset;
     FD_ZERO(&writeset);
-    FD_SET(m_hSocket, &writeset);
+    FD_SET(m_hControlSocket, &writeset);
     struct timeval tv = { timeout, 0 };
-    if (::select(m_hSocket + 1, NULL, &writeset, NULL, &tv) != 1)
+    if (::select(m_hControlSocket + 1, NULL, &writeset, NULL, &tv) != 1)
     {
         //LOG_ERROR("Could not connect to server:%s, port:%d.", m_strServer.c_str(), m_nPort);
         return false;
     }
 
-    m_bConnected = true;
+    m_bControlChannelConnected = true;
+
+
+    //TODO:测试
+    //std::string localIP;
+    //uint16_t localport;
+    //getLocalIpAndPort(localIP, localport);
+
 
     return true;
 }
 
-bool FTPClient::recvBuf()
+bool FTPClient::recvBuf(std::vector<ResponseLine>& responseLines)
 {
-    if (!m_bConnected)
+    std::string buf;
+
+    if (!m_bControlChannelConnected)
         return false;
-
-
 
     while (true)
     {
-        char buf[64] = { 0 };
+        char tmp[64] = { 0 };
 
-        int bytesRecv = recv(m_hSocket, buf, 64, 0);
+        int bytesRecv = ::recv(m_hControlSocket, tmp, 64, 0);
 
         if (bytesRecv == 0)
             return false;
@@ -164,19 +774,34 @@ bool FTPClient::recvBuf()
             }
         }
 
-        m_recvBuf.append(buf, bytesRecv);
+        buf.append(tmp, bytesRecv);
+
+        DecodePackageResult result = m_protocolParser.praseFTPResponse(buf, responseLines);
+        if (result == DecodePackageResult::Error)
+        {
+            return false;
+        }
+        else if (result == DecodePackageResult::ExpectMore)
+        {
+            continue;
+        }
+        else
+        {
+            // 得到一个正确的相应
+            return true;
+        }
     }
 
     return true;
 
 }
 
-bool FTPClient::sendBuf()
+bool FTPClient::sendBuf(std::string& buf)
 {
     int n;
     while (true)
     {
-        n = ::send(m_hSocket, m_sendBuf.c_str(), m_sendBuf.size(), 0);
+        n = ::send(m_hControlSocket, buf.c_str(), buf.size(), 0);
         if (n == 0)
         {
             //对端关闭了连接
@@ -196,17 +821,201 @@ bool FTPClient::sendBuf()
         }
         else
         {
-            if (n == static_cast<int>(m_sendBuf.size()))
+            if (n == static_cast<int>(buf.size()))
             {
-                m_sendBuf.erase(0, n);
+                buf.erase(0, n);
                 return true;
             }
             else
             {
-                m_sendBuf.erase(0, n);
+                buf.erase(0, n);
             }
 
         }
+    }
+}
+
+bool FTPClient::checkReadable(int timeoutSec)
+{
+    fd_set readset;
+    FD_ZERO(&readset);
+    FD_SET(m_hControlSocket, &readset);
+    struct timeval tv = { timeoutSec, 0 };
+
+    int ret = ::select(m_hControlSocket + 1, &readset, NULL, NULL, &tv);
+    if (ret == 1)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool FTPClient::parseDataIpAndPort(const std::string& responseLine)
+{
+    //227 Entering Passive Mode (127,0,0,1,249,38)
+
+    size_t startBracketPos = responseLine.find("(");
+    size_t endBracketPos = responseLine.find(")");
+
+    if (startBracketPos != std::string::npos && endBracketPos != std::string::npos)
+    {
+        std::string ipAndPortStr = responseLine.substr(startBracketPos + 1, endBracketPos - startBracketPos - 1);
+
+        std::vector<std::string> ipAndPort;
+        StringUtil::split(ipAndPortStr, ipAndPort, ",");
+        if (ipAndPort.size() != 6)
+            return false;
+
+        m_dataIp = ipAndPort[0] + "." + ipAndPort[1] + "." + ipAndPort[2] + "." + ipAndPort[3];
+
+        int portV1 = atoi(ipAndPort[4].c_str());
+        int portV2 = atoi(ipAndPort[5].c_str());
+
+        if (portV1 < 0 || portV1 > 65535 || portV2 < 0 || portV2> 65535)
+            return false;
+
+        m_dataPort = static_cast<uint16_t>(256 * portV1 + portV2);
+        if (m_dataPort <= 0 || m_dataPort > 65535)
+            return false;
+
+        return true;
+    }
+}
+
+bool FTPClient::getDataServerAddr(std::string& localIp, uint16_t& localPort)
+{
+    if (!m_bDataChannelConnected || !m_bControlChannelConnected)
+        return false;
+
+    //通过控制socket 获取监听的Ip地址
+    sockaddr_storage addr;
+    socklen_t addrLen = sizeof(addr);
+
+    int res = getsockname(m_hControlSocket, (sockaddr*)&addr, &addrLen);
+    if (res == SOCKET_ERROR)
+    {
+        return false;
+    }
+
+    char hostbuf[NI_MAXHOST];
+    char portbuf[NI_MAXHOST];
+
+    res = getnameinfo((const SOCKADDR*)&addr,
+        addrLen,
+        hostbuf,
+        NI_MAXHOST,
+        nullptr, 0, NI_NUMERICHOST | NI_NUMERICSERV);
+
+    if (res != 0)
+        return false;
+
+
+    localIp = hostbuf;
+
+
+    //通过数据连接的socket 获取监听的端口号
+    sockaddr_storage dataServerAddr;
+    addrLen = sizeof(dataServerAddr);
+
+    res = getsockname(m_hListenSocket, (sockaddr*)&dataServerAddr, &addrLen);
+    if (res == SOCKET_ERROR)
+    {
+        return false;
+    }
+
+
+
+    //getsockname 获取到网络字节序，需要转成本机字节序
+    localPort = ntohs(((struct sockaddr_in*)&dataServerAddr)->sin_port);
+
+
+    return true;
+}
+
+bool FTPClient::createDataServer()
+{
+    //1.创建一个侦听socket
+    m_hListenSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (m_hListenSocket == SOCKET_ERROR)
+    {
+        LOGE("Failed to Create Data Socket");
+        return false;
+    }
+
+    //2.初始化服务器地址
+    struct sockaddr_in bindaddr;
+    bindaddr.sin_family = AF_INET;
+    bindaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    bindaddr.sin_port = htons(0);
+    if (bind(m_hListenSocket, (struct sockaddr*)&bindaddr, sizeof(bindaddr)) == -1)
+    {
+        LOGE("bind listen socket error.");
+        closesocket(m_hListenSocket);
+        return false;
+    }
+
+    //3.启动侦听
+    if (listen(m_hListenSocket, SOMAXCONN) == -1)
+    {
+        LOGE("listen error.");
+        closesocket(m_hListenSocket);
+        return false;
+    }
+
+    m_bDataChannelConnected = true;
+
+    return true;
+}
+
+bool FTPClient::parseDirEntires(const std::string& dirInfo, std::vector<DirEntry>& entries)
+{
+    //解析如下格式
+    //type=;modify=size=;1.txt \r\ntype=;modify=size=;1.txt \r\n 
+
+    std::vector<std::string> v;
+    StringUtil::split(dirInfo, v, "\r\n");
+    if (v.empty())
+        return false;
+
+    const int MODIFY_PREFIX_LENGTH = strlen("modify=");
+    const int SIZE_PREFIX_LENGTH = strlen("size=");
+    const size_t DIR_COUNT_INFO = 3;
+    const size_t FILE_COUNT_INFO = 4;
+    for (const auto& iter : v)
+    {
+        //type = ; modify = size = ; 1.tx
+        std::vector<std::string> v2;
+        StringUtil::split(iter, v2, ";");
+
+        if (v2.size() != DIR_COUNT_INFO && v2.size() != FILE_COUNT_INFO)
+            continue;
+
+        DirEntry entry;
+        if (v2[0] == "type=file")
+        {
+            //文件串格式 type=;modify=;size=;1.txt \r\ntype=;modify=;size=;1.txt
+            entry.type = FileType::File;
+            entry.modify = v2[1].substr(MODIFY_PREFIX_LENGTH);
+            std::string sizeStr = v2[2].substr(SIZE_PREFIX_LENGTH);
+            entry.size = atoll(sizeStr.c_str());
+
+            entry.name = v2[3].substr(1);
+        }
+        else if (v2[0] == "type=dir")
+        {
+            //目录串格式 type=;modify=size=;1.txt \r\ntype=;modify=;1.txt
+            entry.type = FileType::Dir;
+            entry.modify = v2[1].substr(MODIFY_PREFIX_LENGTH);
+            entry.size = 0;
+            entry.name = v2[2].substr(1);
+        }
+        else
+            continue;
+
+        entries.push_back(entry);
     }
 }
 
@@ -256,11 +1065,42 @@ bool FTPClient::parseState()
     return false;
 }
 
+bool FTPClient::sendBytes(SOCKET s, char* buf, int bufLen)
+{
+    int pos = 0;
+    while (true)
+    {
+        int n = send(s, buf, bufLen - pos, 0);
+        if (n == 0)
+        {
+            if (pos == bufLen)
+                return true;
+            else
+                return false;
+        }
+        else if (n > 0)
+        {
+            pos += n;
+            if (pos == bufLen)
+                return true;
+
+            continue;
+        }
+        else
+        {
+            if (WSAGetLastError() == WSAEWOULDBLOCK)
+                continue;
+            else
+                return false;
+        }
+    }
+}
+
 void FTPClient::setServerInfo(const std::string& ip, uint16_t port,
     const std::string& username, const std::string& password, bool isPassiveMode)
 {
-    m_ip = ip;
-    m_port = port;
+    m_controlIp = ip;
+    m_controlPort = port;
 
     m_username = username;
     m_password = password;
@@ -273,10 +1113,10 @@ void FTPClient::networkThreadFunc()
     while (m_networkThreadrunning)
     {
 
-        //简历socket连接
-        if (!m_bConnected)
+        //建立socket连接
+        if (!m_bControlChannelConnected)
         {
-            LOGI("Connected to %s:%d", m_ip.c_str(), m_port);
+            LOGI("Connected to %s:%d", m_controlIp.c_str(), m_controlPort);
             if (!connect())
             {
                 //TODO 反馈给UI层,
@@ -290,10 +1130,10 @@ void FTPClient::networkThreadFunc()
 
             fd_set readset;
             FD_ZERO(&readset);
-            FD_SET(m_hSocket, &readset);
+            FD_SET(m_hControlSocket, &readset);
             struct timeval tv = { 1, 0 };
 
-            int ret = ::select(m_hSocket + 1, &readset, NULL, NULL, &tv);
+            int ret = ::select(m_hControlSocket + 1, &readset, NULL, NULL, &tv);
             if (ret == 0)
             {
                 //select 超时
@@ -304,11 +1144,11 @@ void FTPClient::networkThreadFunc()
             {
                 //有读事件
                 //收包
-                if (!recvBuf())
-                {
-                    //关闭连接 重连
-                    continue;
-                }
+                //if (!recvBuf())
+                //{
+                //    //关闭连接 重连
+                //    continue;
+                //}
 
                 DecodePackageResult result = decodePackge();
                 if (result == DecodePackageResult::Error)
@@ -369,13 +1209,21 @@ void FTPClient::networkThreadFunc()
             break;
             }
 
-            if (!sendBuf())
-            {
-                //出错, 重试
-            }
+            //if (!sendBuf())
+            //{
+            //    //出错, 重试
+            //}
         }
 
     }
+}
+
+void FTPClient::closeSocket()
+{
+    ::closesocket(m_hControlSocket);
+
+    m_bControlChannelConnected = false;
+
 }
 
 

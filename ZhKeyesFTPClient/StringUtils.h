@@ -17,3 +17,4 @@ std::string wstringToString(const std::wstring& wstr) {
 
     return str;
 }
+
