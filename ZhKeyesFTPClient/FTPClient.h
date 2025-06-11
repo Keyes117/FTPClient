@@ -28,7 +28,9 @@ enum FTP_STATUS_CODE
     FILE_STATUS_OKAY_ABOUT_TO_OPEN_DATA_CONNECTION = 150,
     SERVICE_COMMAND_OK = 200,
     SERVICE_READY_FOR_USER = 220,
+    SERVICE_REQUEST_FILE_SUCCESS = 226,
     SERVICE_READY_FOR_PASSWORD = 331,
+    SERVICE_REQUESTED_FILE_ACTION_PENDDING_FURTHRE_INFO = 350,
     SERVICE_USER_LOG_IN = 230,
     SERVICE_PATHNAME_CREATED = 257, //显示当前路径成功
     SERVICE_ENTER_PASSIVE_MODE = 227,
@@ -88,11 +90,11 @@ public:
 
     bool upload(const std::string& localFilePath, const std::string& serverFileName);
 
-    bool uploadDir(const std::string& path);
+    bool download(const std::string& localFilePath, const std::string& serverFileName);
 
-    bool download();
+    bool mkdir(const std::string& targetDir);
 
-    bool mkdir(const std::string& path);
+    bool rename(const std::string& serverOldFileName, const std::string& serverNewFileName);
 
     bool setMode(FTPMODE mode = FTPMODE::ModePassive);
 
@@ -111,7 +113,7 @@ private:
     bool sendBuf(std::string& buf);
 
     //判断数据是否需要接受
-    bool checkReadable(int timeoutSec = 3);
+    bool checkReadable(SOCKET socket, int timeoutSec = 3);
 
     bool parseDataIpAndPort(const std::string& responseLine);
 
@@ -128,6 +130,16 @@ private:
 
     //用于非阻塞socket把数据发完 
     bool sendBytes(SOCKET s, char* buf, int bufLen);
+
+private:
+    bool listInActiveMode();
+    bool listInPassiveMode();
+
+    bool uploadInActiveMode(const std::string& localFilePath, const std::string& serverFileName);
+    bool uploadInPassiveMode(const std::string& localFilePath, const std::string& serverFileName);
+
+    bool downloadInActiveMode(const std::string& localFilePath, const std::string& serverFileName);
+    bool downloadInPassiveMode(const std::string& localFilePath, const std::string& serverFileName);
 
 private:
     //控制通道

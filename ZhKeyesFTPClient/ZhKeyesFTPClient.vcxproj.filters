@@ -84,6 +84,9 @@
     <ClInclude Include="UploadTask.h">
       <Filter>handler</Filter>
     </ClInclude>
+    <ClInclude Include="DownloadTask.h">
+      <Filter>handler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -146,6 +149,9 @@
       <Filter>handler</Filter>
     </ClCompile>
     <ClCompile Include="UploadTask.cpp">
+      <Filter>handler</Filter>
+    </ClCompile>
+    <ClCompile Include="DownloadTask.cpp">
       <Filter>handler</Filter>
     </ClCompile>
   </ItemGroup>
